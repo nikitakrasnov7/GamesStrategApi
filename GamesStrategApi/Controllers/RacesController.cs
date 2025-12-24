@@ -1,33 +1,22 @@
-﻿using GamesStrategApi.Interfaces;
+﻿using Microsoft.AspNetCore.Mvc;
 using GamesStrategApi.Interfaces.IServices;
-using GamesStrategApi.Models;
 using GamesStrategApi.Models.DTOss;
 using GamesStrategApi.Models.Request;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GamesStrategApi.Controllers
 {
-    /// <summary>
-    /// Контроллер для работы с расами
-    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class RacesController : ControllerBase
     {
         private readonly IRaceService _raceService;
 
-        /// <summary>
-        /// Конструктор
-        /// </summary>
         public RacesController(IRaceService raceService)
         {
             _raceService = raceService;
         }
 
-        /// <summary>
-        /// Получить все расы
-        /// </summary>
+        // Получить все расы
         [HttpGet]
         public async Task<ActionResult<List<RaceDto>>> GetRaces()
         {
@@ -35,58 +24,108 @@ namespace GamesStrategApi.Controllers
             return Ok(races);
         }
 
-        /// <summary>
-        /// Получить расу по ID
-        /// </summary>
+        // Получить расу по ID
         [HttpGet("{id}")]
         public async Task<ActionResult<RaceDto>> GetRace(int id)
         {
             var race = await _raceService.GetByIdAsync(id);
 
             if (race == null)
-                return NotFound(new { message = $"Раса с ID {id} не найдена" });
+            {
+                return NotFound(new { error = $"Раса с ID {id} не найдена" });
+            }
 
             return Ok(race);
         }
 
-        /// <summary>
-        /// Создать новую расу
-        /// </summary>
+        // Получить играбельные расы
+        [HttpGet("playable")]
+        public async Task<ActionResult<List<RaceDto>>> GetPlayableRaces()
+        {
+            try
+            {
+                var races = await _raceService.GetPlayableRacesAsync();
+                return Ok(races);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ошибка сервера");
+            }
+        }
+
+        // Создать новую расу
         [HttpPost]
-        public async Task<ActionResult<RaceDto>> CreateRace(CreateRaceRequest request)
+        public async Task<ActionResult<RaceDto>> CreateRace([FromBody] CreateRaceRequest request)
         {
-            var race = await _raceService.CreateAsync(request);
-            return CreatedAtAction(nameof(GetRace), new { id = race.Id }, race);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var race = await _raceService.CreateAsync(request);
+                return CreatedAtAction(nameof(GetRace), new { id = race.Id }, race);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Обновить расу
-        /// </summary>
+        // Обновить расу
         [HttpPut("{id}")]
-        public async Task<ActionResult<RaceDto>> UpdateRace(int id, UpdateRaceRequest request)
+        public async Task<ActionResult<RaceDto>> UpdateRace(int id, [FromBody] UpdateRaceRequest request)
         {
-            var race = await _raceService.UpdateAsync(id, request);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            if (race == null)
-                return NotFound(new { message = $"Раса с ID {id} не найдена" });
+            try
+            {
+                var race = await _raceService.UpdateAsync(id, request);
 
-            return Ok(race);
+                if (race == null)
+                {
+                    return NotFound(new { error = $"Раса с ID {id} не найдена" });
+                }
+
+                return Ok(race);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Удалить расу
-        /// </summary>
+        // Удалить расу
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRace(int id)
         {
-            var result = await _raceService.DeleteAsync(id);
+            try
+            {
+                var result = await _raceService.DeleteAsync(id);
 
-            if (!result)
-                return NotFound(new { message = $"Раса с ID {id} не найдена" });
+                if (!result)
+                {
+                    return NotFound(new { error = $"Раса с ID {id} не найдена" });
+                }
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 }
-
-

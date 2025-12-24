@@ -1,86 +1,163 @@
-﻿using GamesStrategApi.Interfaces;
+﻿using Microsoft.AspNetCore.Mvc;
 using GamesStrategApi.Interfaces.IServices;
-using GamesStrategApi.Models;
 using GamesStrategApi.Models.DTOss;
 using GamesStrategApi.Models.Request;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GamesStrategApi.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class BuildsController : Controller
     {
         private readonly IBuildService _buildingService;
 
-        /// <summary>
-        /// Конструктор
-        /// </summary>
         public BuildsController(IBuildService buildingService)
         {
             _buildingService = buildingService;
         }
 
-        /// <summary>
-        /// Получить все здания
-        /// </summary>
+        // Получить все здания
         [HttpGet]
         public async Task<ActionResult<List<BuildDto>>> GetBuildings()
         {
-            var buildings = await _buildingService.GetAllAsync();
-            return Ok(buildings);
+            try
+            {
+                var buildings = await _buildingService.GetAllAsync();
+                return Ok(buildings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при получении зданий", details = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Получить здание по ID
-        /// </summary>
+        // Получить здание по ID
         [HttpGet("{id}")]
         public async Task<ActionResult<BuildDto>> GetBuilding(int id)
         {
-            var building = await _buildingService.GetByIdAsync(id);
+            try
+            {
+                var building = await _buildingService.GetByIdAsync(id);
 
-            if (building == null)
-                return NotFound(new { message = $"Здание с ID {id} не найдено" });
+                if (building == null)
+                {
+                    return NotFound(new { error = $"Здание с ID {id} не найдено" });
+                }
 
-            return Ok(building);
+                return Ok(building);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при получении здания", details = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Создать новое здание
-        /// </summary>
+        // Создать новое здание
         [HttpPost]
-        public async Task<ActionResult<BuildDto>> CreateBuilding(CreateBuildRequest request)
+        public async Task<ActionResult<BuildDto>> CreateBuilding([FromBody] CreateBuildRequest request)
         {
-            var building = await _buildingService.CreateAsync(request);
-            return CreatedAtAction(nameof(GetBuilding), new { id = building.Id }, building);
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var building = await _buildingService.CreateAsync(request);
+                return CreatedAtAction(nameof(GetBuilding), new { id = building.Id }, building);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при создании здания", details = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Обновить здание
-        /// </summary>
+        // Обновить здание
         [HttpPut("{id}")]
-        public async Task<ActionResult<BuildDto>> UpdateBuilding(int id, UpdateBuildRequest request)
+        public async Task<ActionResult<BuildDto>> UpdateBuilding(int id, [FromBody] UpdateBuildRequest request)
         {
-            var building = await _buildingService.UpdateAsync(id, request);
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
-            if (building == null)
-                return NotFound(new { message = $"Здание с ID {id} не найдено" });
+                var building = await _buildingService.UpdateAsync(id, request);
 
-            return Ok(building);
+                if (building == null)
+                {
+                    return NotFound(new { error = $"Здание с ID {id} не найдено" });
+                }
+
+                return Ok(building);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при обновлении здания", details = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Удалить здание
-        /// </summary>
+        // Удалить здание
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBuilding(int id)
         {
-            var result = await _buildingService.DeleteAsync(id);
+            try
+            {
+                var result = await _buildingService.DeleteAsync(id);
 
-            if (!result)
-                return NotFound(new { message = $"Здание с ID {id} не найдено" });
+                if (!result)
+                {
+                    return NotFound(new { error = $"Здание с ID {id} не найдено" });
+                }
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при удалении здания", details = ex.Message });
+            }
         }
 
+        // Дополнительные эндпоинты
+        [HttpGet("economic")]
+        public async Task<ActionResult<List<BuildDto>>> GetEconomicBuildings()
+        {
+            try
+            {
+                var buildings = await _buildingService.GetEconomicBuildingsAsync();
+                return Ok(buildings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при получении экономических зданий", details = ex.Message });
+            }
+        }
+
+        [HttpGet("by-type/{type}")]
+        public async Task<ActionResult<List<BuildDto>>> GetByType(string type)
+        {
+            try
+            {
+                var buildings = await _buildingService.GetByTypeAsync(type);
+                return Ok(buildings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Ошибка при получении зданий по типу", details = ex.Message });
+            }
+        }
     }
 }

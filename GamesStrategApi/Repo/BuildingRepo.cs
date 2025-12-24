@@ -10,7 +10,6 @@ namespace GamesStrategApi.Repo
         {
         }
 
-        // Получить здания определенного типа
         public async Task<IEnumerable<Building>> GetBuildingsByTypeAsync(string buildingType)
         {
             return await _dbSet
@@ -19,8 +18,6 @@ namespace GamesStrategApi.Repo
                 .OrderBy(b => b.Name)
                 .ToListAsync();
         }
-
-        // Получить экономические здания или здания с бонусом дохода
         public async Task<IEnumerable<Building>> GetEconomicBuildingsAsync()
         {
             return await _dbSet
@@ -29,7 +26,6 @@ namespace GamesStrategApi.Repo
                 .ToListAsync();
         }
 
-        // Получить здания без требований технологий
         public async Task<IEnumerable<Building>> GetAvailableWithoutTechAsync()
         {
             return await _dbSet
@@ -38,7 +34,6 @@ namespace GamesStrategApi.Repo
                 .ToListAsync();
         }
 
-        // Получить дорогие здания (стоимость выше указанной)
         public async Task<IEnumerable<Building>> GetExpensiveBuildingsAsync(int minCost)
         {
             return await _dbSet
@@ -47,7 +42,6 @@ namespace GamesStrategApi.Repo
                 .ToListAsync();
         }
 
-        // Получить все здания с информацией о технологиях
         public async Task<IEnumerable<Building>> GetBuildingsWithTechAsync()
         {
             return await _dbSet
@@ -57,7 +51,6 @@ namespace GamesStrategApi.Repo
                 .ToListAsync();
         }
 
-        // Получить здание по ID с информацией о технологии
         public async Task<Building?> GetBuildingWithTechAsync(int id)
         {
             return await _dbSet
@@ -65,7 +58,6 @@ namespace GamesStrategApi.Repo
                 .FirstOrDefaultAsync(b => b.Id == id);
         }
 
-        // Переопределенный метод получения по ID с загрузкой технологии
         public override async Task<Building?> GetByIdAsync(int id)
         {
             return await GetBuildingWithTechAsync(id);

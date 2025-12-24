@@ -1,10 +1,7 @@
-﻿using GamesStrategApi.Interfaces;
+﻿using Microsoft.AspNetCore.Mvc;
 using GamesStrategApi.Interfaces.IServices;
-using GamesStrategApi.Models;
 using GamesStrategApi.Models.DTOss;
 using GamesStrategApi.Models.Request;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GamesStrategApi.Controllers
 {
@@ -14,17 +11,12 @@ namespace GamesStrategApi.Controllers
     {
         private readonly ITechService _techService;
 
-        /// <summary>
-        /// Конструктор
-        /// </summary>
         public TechController(ITechService techService)
         {
             _techService = techService;
         }
 
-        /// <summary>
-        /// Получить все технологии
-        /// </summary>
+        // Получить все технологии
         [HttpGet]
         public async Task<ActionResult<List<TechDto>>> GetTechs()
         {
@@ -32,57 +24,112 @@ namespace GamesStrategApi.Controllers
             return Ok(techs);
         }
 
-        /// <summary>
-        /// Получить технологию по ID
-        /// </summary>
+        // Получить технологию по ID
         [HttpGet("{id}")]
         public async Task<ActionResult<TechDto>> GetTech(int id)
         {
             var tech = await _techService.GetByIdAsync(id);
 
             if (tech == null)
-                return NotFound(new { message = $"Технология с ID {id} не найдена" });
+            {
+                return NotFound(new { error = $"Технология с ID {id} не найдена" });
+            }
 
             return Ok(tech);
         }
 
-        /// <summary>
-        /// Создать новую технологию
-        /// </summary>
+        // Получить стартовые технологии
+        [HttpGet("starting")]
+        public async Task<ActionResult<List<TechDto>>> GetStartingTechs()
+        {
+            try
+            {
+                var techs = await _techService.GetStartingTechsAsync();
+                return Ok(techs);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ошибка при получении стартовых технологий");
+            }
+        }
+
+        // Создать новую технологию
         [HttpPost]
-        public async Task<ActionResult<TechDto>> CreateTech(CreateTechRequest request)
+        public async Task<ActionResult<TechDto>> CreateTech([FromBody] CreateTechRequest request)
         {
-            var tech = await _techService.CreateAsync(request);
-            return CreatedAtAction(nameof(GetTech), new { id = tech.Id }, tech);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var tech = await _techService.CreateAsync(request);
+                return CreatedAtAction(nameof(GetTech), new { id = tech.Id }, tech);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Обновить технологию
-        /// </summary>
+        // Обновить технологию
         [HttpPut("{id}")]
-        public async Task<ActionResult<TechDto>> UpdateTech(int id, UpdateTechRequest request)
+        public async Task<ActionResult<TechDto>> UpdateTech(int id, [FromBody] UpdateTechRequest request)
         {
-            var tech = await _techService.UpdateAsync(id, request);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            if (tech == null)
-                return NotFound(new { message = $"Технология с ID {id} не найдена" });
+            try
+            {
+                var tech = await _techService.UpdateAsync(id, request);
 
-            return Ok(tech);
+                if (tech == null)
+                {
+                    return NotFound(new { error = $"Технология с ID {id} не найдена" });
+                }
+
+                return Ok(tech);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Удалить технологию
-        /// </summary>
+        // Удалить технологию
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTech(int id)
         {
-            var result = await _techService.DeleteAsync(id);
+            try
+            {
+                var result = await _techService.DeleteAsync(id);
 
-            if (!result)
-                return NotFound(new { message = $"Технология с ID {id} не найдена" });
+                if (!result)
+                {
+                    return NotFound(new { error = $"Технология с ID {id} не найдена" });
+                }
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 }
-
